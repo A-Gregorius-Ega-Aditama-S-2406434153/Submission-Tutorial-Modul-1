@@ -1,3 +1,6 @@
+// I changed the structure and fixed the dependency errors, so it is
+// a bit different from the tutorial, but it is equivalent to the tutorial.
+
 plugins {
     java
     id("org.springframework.boot") version "4.0.2"
@@ -21,25 +24,59 @@ configurations {
     }
 }
 
+val seleniumJavaVersion = "4.14.1"
+val seleniumJupiterVersion = "5.0.1"
+val webdrivermanagerVersion = "5.6.3"
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+
     compileOnly("org.projectlombok:lombok")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
-    testImplementation("org.springframework.boot:spring-boot-starter-thymeleaf-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.seleniumhq.selenium:selenium-java:$seleniumJavaVersion")
+    testImplementation("io.github.bonigarcia:selenium-jupiter:$seleniumJupiterVersion")
+    testImplementation("io.github.bonigarcia:webdrivermanager:$webdrivermanagerVersion")
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+
+fun Test.inheritFromTestTask() {
+    val testTask = tasks.named<Test>("test").get()
+    testClassesDirs = testTask.testClassesDirs
+    classpath = testTask.classpath
+    useJUnitPlatform()
+}
+
+tasks.register<Test>("unitTest") {
+    description = "Runs unit tests."
+    group = "verification"
+    inheritFromTestTask()
+
+    filter {
+        excludeTestsMatching("*FunctionalTest")
+    }
+}
+
+tasks.register<Test>("functionalTest") {
+    description = "Runs functional tests."
+    group = "verification"
+    inheritFromTestTask()
+
+    filter {
+        includeTestsMatching("*FunctionalTest")
+    }
 }
 
 tasks.test {
